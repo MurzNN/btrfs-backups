@@ -1,0 +1,24 @@
+{
+  "name": "btrfs-backups",
+  "version": "1.0.0",
+  "description": "Creating and managing backups using BTRFS snapshots and btrfs-sxbackup script.",
+  "main": "backup.js",
+  "repository": "https://github.com/MurzNN/btrfs-backups",
+  "author": "Alexey Murz Korepov <MurzNN@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "js-yaml": "^4.1.0",
+    "pino": "^6.13.1",
+    "serialize-error": "^8.1.0",
+    "yargs": "^17.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-standard": "^16.0.3",
+    "eslint-plugin-import": "^2.24.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^5.1.0"
+  }
+}
