@@ -1,27 +1,33 @@
-# Default retention rules using btrfs-sxbackup expression:
-# From https://github.com/masc3d/btrfs-sxbackup/blob/master/README.rst
-# > Expression defining which source snapshots to
-# > retain/cleanup. can be a static number (of backups) or
-# > more complex expression like "1d:4/d, 1w:daily,
-# > 2m:none" literally translating to: "1 day from now
-# > keep 4 backups a day, 1 week from now keep daily
-# > backups, 2 months from now keep none"
-retentionDefault:
-  source: "3"
-  destination: "1d:1/d, 1w:daily, 2w:daily, 3w:daily, 4w:daily 5w:none"
+# Default settings for job, that can be overriden in individal job if needed.
+jobDefaults:
+  # Default retention rules using btrfs-sxbackup expression:
+  # From https://github.com/masc3d/btrfs-sxbackup/blob/master/README.rst
+  # > Expression defining which source snapshots to
+  # > retain/cleanup. can be a static number (of backups) or
+  # > more complex expression like "1d:4/d, 1w:daily,
+  # > 2m:none" literally translating to: "1 day from now
+  # > keep 4 backups a day, 1 week from now keep daily
+  # > backups, 2 months from now keep none"
+  sourceRetention: "3"
+  destinationRetention: "1d:1/d, 1w:daily, 2w:daily, 3w:daily, 4w:daily, 5w:none"
 
 # List of jobs to make backup process
-# key - source btrfs volume mount path
-# destination - destination btrfs volume mount path
+# id - uniquie backup name (for internal usage only)
+#   source - source btrfs volume mount path
+#   destination - destination btrfs volume mount path
 jobs:
-  '/var/lib/mysql':
+  'local-mysql':
+    source: '/var/lib/mysql'
     destination: '/var/backups/mysql'
 
-  '/var/lib/postgresql':
+  'local-postgresql':
+    source: '/var/lib/postgresql'
     destination: '/var/backups/postgresql'
 
-  '/srv':
-    destination: '/var/backups/srv'
-
-  '/home':
+  'local-home':
+    source: '/home'
     destination: '/var/backups/home'
+
+  'remote-srv1-home':
+    source: 'ssh://root@remote-srv1/home'
+    destination: '/var/backups/remote-srv1/home'

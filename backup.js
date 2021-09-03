@@ -28,24 +28,22 @@ try {
 /**
  * Does a single backup job.
  *
- * @param {string} job - job name, matching to config file key
+ * @param {string} jobId - job name, matching to config file key
  */
 
-const backupDo = function (job) {
+const backupDo = function (jobId) {
+  const job = makeJobObject(jobId)
   let op
   const timings = {}
   try {
     timings.start = performance.now()
-    op = 'info'
-    const info = sxbackup.info(job)
-    timings[op] = performance.now()
 
     op = 'run'
-    sxbackup.run(info['Source URL'])
+    sxbackup.run(job.destination)
     timings[op] = performance.now()
 
-    op = 'check'
-    const checkStat = btrfs.check(info['Destination URL'])
+    op = 'check_destination'
+    const checkStat = btrfs.check(job.destination)
     timings[op] = performance.now()
     const stat = {
       ...checkStat,
@@ -53,43 +51,50 @@ const backupDo = function (job) {
     }
     logger.info({
       function: 'backupDo',
+      jobId,
       job,
       ...stat
-    }, `Backup job ${job} finished`)
+    }, `Backup job ${jobId} finished`)
   } catch (e) {
     logger.error({
       function: 'backupDo',
-      job: job,
+      jobId,
+      job,
       stage: op,
       exception: serializeError(e)
-    }, `Backup job ${job} failed on stage '${op}'`)
+    }, `Backup job ${jobId} failed on stage '${op}'`)
   }
 }
 
 /**
  * Configures a backup job (creates new or updates config).
  *
- * @param {string} job - job name, matching to config file key
+ * @param {string} jobId - job name, matching to config file key
  */
 
-export const backupConfigure = function (job) {
-  const action = sxbackup.info(job) === false
+export const backupConfigure = function (jobId) {
+  const job = makeJobObject(jobId)
+  const action = sxbackup.info(job.destination) === false
     ? 'init'
     : 'update'
-  sxbackup.configure(
-    action,
-    job,
-    config.jobs[job].destination,
-    job.retention?.source ?? config.retentionDefault.source,
-    job.retention?.destination ?? config.retentionDefault.destination
-  )
+  sxbackup.configure(job, action)
   logger.info({
     function: 'backupConfigure',
-    source: job,
-    destination: config.jobs[job].destination,
-    sr: job.retention?.source ?? config.retentionDefault.source,
-    dr: job.retention?.destination ?? config.retentionDefault.destination
-  }, `Backup job ${job} configured`)
+    jobId,
+    job
+  }, `Backup job ${jobId} configured`)
+}
+
+/**
+ * Generate the full job object from config by id
+ *
+ * @param {string} jobId - job identifier
+ */
+const makeJobObject = function (jobId) {
+  return {
+    ...config.jobDefaults,
+    ...config.jobs[jobId]
+  }
 }
 
 /**
@@ -98,10 +103,10 @@ export const backupConfigure = function (job) {
  * @param {string} argv - cli arguments
  */
 
-const doConfigure = function (argv = {}) {
+const doConfiguration = function (argv = {}) {
   logger.info('Update backup jobs started')
-  for (const job in config.jobs) {
-    backupConfigure(job)
+  for (const jobId in config.jobs) {
+    backupConfigure(jobId)
   }
   logger.info('Update backup jobs finished')
 }
@@ -114,8 +119,8 @@ const doConfigure = function (argv = {}) {
 
 const doBackups = function (argv = {}) {
   logger.info('Backup process started')
-  for (const job in config.jobs) {
-    backupDo(job)
+  for (const jobId in config.jobs) {
+    backupDo(jobId)
   }
   logger.info('Backup process finished')
 }
@@ -123,7 +128,7 @@ const doBackups = function (argv = {}) {
 // eslint-disable-next-line no-unused-expressions
 yargs(hideBin(process.argv))
   .command('configure', 'Configure (create and update) backup jobs', () => {}, (argv) => {
-    doConfigure(argv)
+    doConfiguration(argv)
   })
   .command('backup', 'Execute backup jobs', () => {}, (argv) => {
     doBackups(argv)
