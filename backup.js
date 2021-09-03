@@ -4,6 +4,7 @@ import * as fs from 'fs'
 import * as yaml from 'js-yaml'
 import { performance } from 'perf_hooks'
 import { serializeError } from 'serialize-error'
+import * as diskusage from 'diskusage'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
@@ -39,21 +40,32 @@ const backupDo = function (jobId) {
     timings.start = performance.now()
 
     op = 'run'
-    sxbackup.run(job.destination)
+    const subvolume = sxbackup.run(job.destination)
     timings[op] = performance.now()
 
-    op = 'check_destination'
+    op = 'statistics'
+    const destinationDu = diskusage.checkSync(job.destination)
+    const subvolumesDu = btrfs.subvolumesDu(job.destination)
+    const subvolumeStat = {
+      used: subvolumesDu.subvolumes[subvolume].total,
+      exclusive: subvolumesDu.subvolumes[subvolume].exclusive,
+      exclusiveTotal: subvolumesDu.exclusive,
+      total: destinationDu.total,
+      free: destinationDu.available
+    }
+    timings[op] = performance.now()
+
+    op = 'checkDestination'
     const checkStat = btrfs.check(job.destination)
     timings[op] = performance.now()
-    const stat = {
-      ...checkStat,
-      timings: timingsToSpans(timings)
-    }
+
     logger.info({
       function: 'backupDo',
       jobId,
       job,
-      ...stat
+      checkStat,
+      subvolumeStat,
+      duration: timingsToSpans(timings)
     }, `Backup job ${jobId} finished`)
   } catch (e) {
     logger.error({
